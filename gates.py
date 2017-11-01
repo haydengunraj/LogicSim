@@ -42,13 +42,3 @@ class OR2(Gate):
             if i.operate() == 1:
                 return 1
         return 0
-
-"""circ = Circuit()
-circ.addInput("A", 1)
-circ.addInput("B", 0)
-circ.addInput("C", 1)
-circ.addOR("D")
-circ.setInputs("D", "A", "B")
-circ.addAND("E", "D", "C")
-circ.addOutput("F", "E")
-circ.test()"""
