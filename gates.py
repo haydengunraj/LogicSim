@@ -11,11 +11,6 @@ class Gate(object):
         except:
             pass
 
-class Wire(object):
-    def __init__(self):
-        self.id = 0
-        self.tags = []
-
 ### INPUT AND OUTPUT CLASSES ###
 
 class IN(Gate):
