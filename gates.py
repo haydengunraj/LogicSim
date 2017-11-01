@@ -6,10 +6,15 @@ class Gate(object):
     
     def addInput(self, inputGate):
         self.inputs.append(inputGate)
-        inputGate.next.append(self)
-        
-    def operate(self):
-        return self.output()
+        try:
+            inputGate.next.append(self)
+        except:
+            pass
+
+class Wire(object):
+    def __init__(self):
+        self.id = 0
+        self.tags = []
 
 ### INPUT AND OUTPUT CLASSES ###
 
@@ -19,26 +24,26 @@ class IN(Gate):
 
 class OUT(Gate):
     def output(self):
-        return self.inputs[0].operate()
+        return self.inputs[0].output()
 
 ### GATE CLASSES ###
 
 class NOT(Gate):
     def output(self):
-        if self.inputs[0].operate():
+        if self.inputs[0].output():
             return 0
         return 1
 
 class AND2(Gate):
     def output(self):
         for i in self.inputs:
-            if i.operate() != 1:
+            if i.output() != 1:
                 return 0
         return 1
 
 class OR2(Gate):
     def output(self):
         for i in self.inputs:
-            if i.operate() == 1:
+            if i.output() == 1:
                 return 1
         return 0

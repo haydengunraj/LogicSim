@@ -17,8 +17,11 @@ class MainWindow(Tk):
     
     def bind_handlers(self):
         self.frame1.listbox.bind("<<ListboxSelect>>", self.handler.list_handler)
-        self.frame1.mode_buttons[0].config(command=lambda:self.handler.mode_handler(DELETE))
-        self.frame1.mode_buttons[1].config(command=lambda:self.handler.mode_handler(CONNECT))
+        self.frame1.mode_buttons[0].config(command=lambda:self.handler.mode_handler(0))
+        self.frame1.mode_buttons[1].config(command=lambda:self.handler.mode_handler(1))
+        self.frame1.mode_buttons[2].config(command=lambda:self.handler.mode_handler(2))
+        self.frame1.mode_buttons[3].config(command=lambda:self.handler.mode_handler(3))
+        self.frame1.mode_buttons[4].config(command=lambda:self.handler.mode_handler(4))
         self.frame2.canvas.bind("<Button-1>", self.handler.click_handler)
         self.frame2.canvas.bind("<B1-Motion>", self.handler.drag_handler)
         self.frame2.canvas.bind("<Motion>", self.handler.move_handler)
@@ -44,11 +47,17 @@ class MenuFrame(Frame):
     
     def modebuttons_setup(self):
         self.mode_buttons = []
-        self.active = [0, 0]
+        self.active = [0, 0, 0, 0, 0]
         self.mode_buttons.append(Button(self, text="DELETE", highlightbackground="grey"))
         self.mode_buttons.append(Button(self, text="CONNECT", highlightbackground="grey"))
+        self.mode_buttons.append(Button(self, text="SET VALUES", highlightbackground="grey"))
+        self.mode_buttons.append(Button(self, text="RENAME", highlightbackground="grey"))
+        self.mode_buttons.append(Button(self, text="SIMULATE", highlightbackground="grey"))
         self.mode_buttons[DELETE].grid(row=1, column=0, sticky="nsew")
         self.mode_buttons[CONNECT].grid(row=1, column=1, sticky="nsew")
+        self.mode_buttons[SET_VALS].grid(row=2, column=0, sticky="nsew")
+        self.mode_buttons[RENAME].grid(row=2, column=1, sticky="nsew")
+        self.mode_buttons[SIMULATE].grid(row=3, columnspan=2, sticky="nsew")
 
 class CircuitFrame(Frame):
     def __init__(self, master, **kwargs):
