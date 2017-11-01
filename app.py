@@ -5,7 +5,7 @@ from objects import Handler
 class MainWindow(Tk):
     def __init__(self):
         Tk.__init__(self)
-        self.title("Circuit Builder")
+        self.title("LogicSim")
         self.geometry = "{}x{}+0+0".format(self.winfo_screenwidth(), self.winfo_screenheight())
         self.frame1 = MenuFrame(self, bg="grey")
         self.frame2 = CircuitFrame(self, highlightbackground="black", highlightcolor="black", highlightthickness=1, width=200)
