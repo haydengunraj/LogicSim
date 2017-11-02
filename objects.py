@@ -182,7 +182,12 @@ class Handler(object):
                 self.toggle_CONNECT()
             if mode == TRUTH:
                 self.toggle_CONNECT()
-                self.main.truth_table(self.main, self.circuit)
+                tab = self.main.truth_table(self.main, self.circuit)
+                self.main.wait_window(tab.top)
+                self.menu.mode_buttons[TRUTH].config(highlightbackground="grey")
+                self.menu.active[TRUTH] = 0
+                
+                
     
     def toggle_CONNECT(self):
         if self.dyn_id:
@@ -227,13 +232,14 @@ class Circuit(object):
         else:
             self.elements[tag1].add_input(self.elements[tag2])
     
-    def simulate(self):
+    def simulate(self, t_table=False):
         output_vals = {}
         for t in self.elements:
             if isinstance(self.elements[t], OUT):
                 output = self.elements[t].output()
-                s = "{}:{}".format(self.master.aliases[t], output)
-                self.master.canvas.itemconfig(self.master.canvas.find_withtag(t)[-1], text=s)
+                if not t_table:
+                    s = "{}:{}".format(self.master.aliases[t], output)
+                    self.master.canvas.itemconfig(self.master.canvas.find_withtag(t)[-1], text=s)
                 output_vals[t] = output
         return output_vals
     
@@ -250,7 +256,7 @@ class Circuit(object):
             for j in range(len(bi)):
                 self.elements[input_gates[j]].inputs = []
                 self.elements[input_gates[j]].add_input(bi[j])
-            res = self.simulate()
+            res = self.simulate(t_table=True)
             c = 0
             s = []
             for t in res:
@@ -258,24 +264,6 @@ class Circuit(object):
                     output_gates.append(t)
                 s.append(res[t])
             output_sets.append(s)
-        return input_gates, output_gates, output_sets
-    
-    def truth_table2(self):
-        input_gates = []
-        output_sets = {}
-        for t in self.elements:
-            if isinstance(self.elements[t], IN):
-                input_gates.append(t)
-        for t in self.elements:
-            if isinstance(self.elements[t], OUT):
-                output_sets[t] = []
-        input_gates.sort()
-        for i in range(2**len(input_gates)):
-            bi = [int(v) for v in list(format(i, "0{}b".format(len(input_gates))))]
-            for j in range(len(bi)):
-                self.elements[input_gates[j]].inputs = []
-                self.elements[input_gates[j]].add_input(bi[j])
-            output_sets.append(self.simulate())
         return input_gates, output_gates, output_sets
 
 class Drawing(object):
