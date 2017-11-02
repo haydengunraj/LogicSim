@@ -25,6 +25,8 @@ class MainWindow(Tk):
         self.frame1.mode_buttons[3].config(command=lambda:self.handler.mode_handler(3))
         self.frame1.mode_buttons[4].config(command=lambda:self.handler.mode_handler(4))
         self.frame1.mode_buttons[5].config(command=lambda:self.handler.mode_handler(5))
+        self.frame1.mode_buttons[6].config(command=lambda:self.handler.mode_handler(6))
+        self.frame1.mode_buttons[7].config(command=lambda:self.handler.mode_handler(7))
         self.frame2.canvas.bind("<Button-1>", self.handler.click_handler)
         self.frame2.canvas.bind("<B1-Motion>", self.handler.drag_handler)
         self.frame2.canvas.bind("<Motion>", self.handler.move_handler)
@@ -50,19 +52,23 @@ class MenuFrame(Frame):
     
     def modebuttons_setup(self):
         self.mode_buttons = []
-        self.active = [0, 0, 0, 0, 0, 0]
+        self.active = [0, 0, 0, 0, 0, 0, 0, 0]
         self.mode_buttons.append(Button(self, text="Delete", highlightbackground="grey"))
         self.mode_buttons.append(Button(self, text="Connect", highlightbackground="grey"))
         self.mode_buttons.append(Button(self, text="Set Values", highlightbackground="grey"))
         self.mode_buttons.append(Button(self, text="Rename I/O", highlightbackground="grey"))
         self.mode_buttons.append(Button(self, text="Simulate", highlightbackground="grey"))
         self.mode_buttons.append(Button(self, text="Truth Table", highlightbackground="grey"))
+        self.mode_buttons.append(Button(self, text="Save", highlightbackground="grey"))
+        self.mode_buttons.append(Button(self, text="Load", highlightbackground="grey"))
         self.mode_buttons[DELETE].grid(row=1, column=0, sticky="nsew")
         self.mode_buttons[CONNECT].grid(row=1, column=1, sticky="nsew")
         self.mode_buttons[SET_VALS].grid(row=2, column=0, sticky="nsew")
         self.mode_buttons[RENAME].grid(row=2, column=1, sticky="nsew")
         self.mode_buttons[SIMULATE].grid(row=3, columnspan=2, sticky="nsew")
         self.mode_buttons[TRUTH].grid(row=4, columnspan=2, sticky="nsew")
+        self.mode_buttons[SAVE].grid(row=5, column=0, sticky="new")
+        self.mode_buttons[LOAD].grid(row=5, column=1, sticky="new")
 
 class CircuitFrame(Frame):
     def __init__(self, master, **kwargs):

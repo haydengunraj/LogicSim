@@ -2,7 +2,7 @@ from Tkinter import *
 from math import hypot
 from constants import *
 from gates import *
-
+from save_load import CircuitFileIO ## TEST
 
 class Handler(object):
     def __init__(self, main):
@@ -15,7 +15,7 @@ class Handler(object):
         self.curs = None
         self.mouse_mode = None
         
-        ### VARIABLES/FLAGS FOR DRAWING CONNECTORS
+        ### VARIABLES/FLAGS FOR DRAWING WIRES
         self.highlighted = 0
         self.dyn_id = 0
         self.dyn_tag = None
@@ -24,6 +24,10 @@ class Handler(object):
         self.drawing = Drawing(self.canvas)
         self.menu = self.main.frame1
         self.circuit = Circuit(self)
+        
+        self.io = CircuitFileIO(self)
+        self.save = self.io.save
+        self.load = self.io.load
     
     def click_handler(self, event):
         x = self.canvas.canvasx(event.x)
@@ -148,7 +152,7 @@ class Handler(object):
         listbox = event.widget
         self.gate_mode = listbox.get(listbox.curselection()[0])
         self.mouse_mode = None
-        self.menu.active = [0, 0, 0, 0, 0, 0]
+        self.menu.active = [0, 0, 0, 0, 0, 0, 0, 0]
         for btn in self.menu.mode_buttons:
             btn.config(highlightbackground="grey") 
         if self.curs is not None:
@@ -177,15 +181,25 @@ class Handler(object):
                 self.curs = None
             if mode == DELETE:
                 self.toggle_CONNECT()
-            if mode == SIMULATE:
+            elif mode == SIMULATE:
                 self.circuit.simulate()
                 self.toggle_CONNECT()
-            if mode == TRUTH:
+            elif mode == TRUTH:
                 self.toggle_CONNECT()
                 tab = self.main.truth_table(self.main, self.circuit)
                 self.main.wait_window(tab.top)
                 self.menu.mode_buttons[TRUTH].config(highlightbackground="grey")
                 self.menu.active[TRUTH] = 0
+            elif mode == SAVE:
+                uin = self.main.input_box(self.main, "Set Filename", "Save")
+                self.main.wait_window(uin.top)
+                try:
+                    filename = "{}.json".format(uin.value)
+                    self.save(filename)
+                except AttributeError:
+                    pass
+            elif mode == LOAD:
+                print self.wires
                 
                 
     
@@ -322,46 +336,46 @@ class Drawing(object):
         return tags[0], connectors
     
     def draw_NOT(self, x, y):
-        tag = "NOT{}".format(self.gate_cnt)
+        tags = ("NOT{}".format(self.gate_cnt), "NOT")
         connectors = []
-        self.canvas.create_line(x - 40, y, x - 10, y, tags=(tag))
-        self.canvas.create_line(x + 11, y, x + 41, y, tags=(tag))
-        self.canvas.create_line(x - 10, y - 10, x - 10, y + 10, tags=(tag))
-        self.canvas.create_line(x - 10, y - 10, x + 5, y, tags=(tag))
-        self.canvas.create_line(x - 10, y + 10, x + 5, y, tags=(tag))
-        self.canvas.create_oval(x + 5, y - 3, x + 11, y + 3, tags=(tag))
-        connectors.append(self.canvas.create_oval(x - 40 - CONN_RADIUS, y - CONN_RADIUS, x - 40 + CONN_RADIUS, y + CONN_RADIUS, tags=(tag), outline=""))
-        connectors.append(self.canvas.create_oval(x + 41 - CONN_RADIUS, y - CONN_RADIUS, x + 41 + CONN_RADIUS, y + CONN_RADIUS, tags=(tag), outline=""))
+        self.canvas.create_line(x - 40, y, x - 10, y, tags=tags)
+        self.canvas.create_line(x + 11, y, x + 41, y, tags=tags)
+        self.canvas.create_line(x - 10, y - 10, x - 10, y + 10, tags=tags)
+        self.canvas.create_line(x - 10, y - 10, x + 5, y, tags=tags)
+        self.canvas.create_line(x - 10, y + 10, x + 5, y, tags=tags)
+        self.canvas.create_oval(x + 5, y - 3, x + 11, y + 3, tags=tags)
+        connectors.append(self.canvas.create_oval(x - 40 - CONN_RADIUS, y - CONN_RADIUS, x - 40 + CONN_RADIUS, y + CONN_RADIUS, tags=tags, outline=""))
+        connectors.append(self.canvas.create_oval(x + 41 - CONN_RADIUS, y - CONN_RADIUS, x + 41 + CONN_RADIUS, y + CONN_RADIUS, tags=tags, outline=""))
         self.gate_cnt += 1
-        return tag, connectors
+        return tags[0], connectors
     
     def draw_AND2(self, x, y):
-        tag = "2AND{}".format(self.gate_cnt)
+        tags = ("2AND{}".format(self.gate_cnt), "AND2")
         connectors = []
-        self.canvas.create_line(x - 44, y - 10, x - 14, y - 10, tags=(tag))
-        self.canvas.create_line(x - 44, y + 10, x - 14, y + 10, tags=(tag))
-        self.canvas.create_line(x + 28, y, x + 58, y, tags=(tag))
-        self.canvas.create_line(x - 14, y - 15, x - 14, y + 15, tags=(tag))
-        self.canvas.create_line(x - 14, y - 15, x + 13, y - 15, tags=(tag))
-        self.canvas.create_line(x - 14, y + 15, x + 13, y + 15, tags=(tag))
-        self.canvas.create_arc(x - 2, y - 15, x + 28, y + 15, start=-90, extent=180, style=ARC, tags=(tag))
-        connectors.append(self.canvas.create_oval(x - 44 - CONN_RADIUS, y - 10 - CONN_RADIUS, x - 44 + CONN_RADIUS, y - 10 + CONN_RADIUS, tags=(tag), outline=""))
-        connectors.append(self.canvas.create_oval(x - 44 - CONN_RADIUS, y + 10 - CONN_RADIUS, x - 44 + CONN_RADIUS, y + 10 + CONN_RADIUS, tags=(tag), outline=""))
-        connectors.append(self.canvas.create_oval(x + 58 - CONN_RADIUS, y - CONN_RADIUS, x + 58 + CONN_RADIUS, y + CONN_RADIUS, tags=(tag), outline=""))
+        self.canvas.create_line(x - 44, y - 10, x - 14, y - 10, tags=tags)
+        self.canvas.create_line(x - 44, y + 10, x - 14, y + 10, tags=tags)
+        self.canvas.create_line(x + 28, y, x + 58, y, tags=tags)
+        self.canvas.create_line(x - 14, y - 15, x - 14, y + 15, tags=tags)
+        self.canvas.create_line(x - 14, y - 15, x + 13, y - 15, tags=tags)
+        self.canvas.create_line(x - 14, y + 15, x + 13, y + 15, tags=tags)
+        self.canvas.create_arc(x - 2, y - 15, x + 28, y + 15, start=-90, extent=180, style=ARC, tags=tags)
+        connectors.append(self.canvas.create_oval(x - 44 - CONN_RADIUS, y - 10 - CONN_RADIUS, x - 44 + CONN_RADIUS, y - 10 + CONN_RADIUS, tags=tags, outline=""))
+        connectors.append(self.canvas.create_oval(x - 44 - CONN_RADIUS, y + 10 - CONN_RADIUS, x - 44 + CONN_RADIUS, y + 10 + CONN_RADIUS, tags=tags, outline=""))
+        connectors.append(self.canvas.create_oval(x + 58 - CONN_RADIUS, y - CONN_RADIUS, x + 58 + CONN_RADIUS, y + CONN_RADIUS, tags=tags, outline=""))
         self.gate_cnt += 1
-        return tag, connectors
+        return tags[0], connectors
 
     def draw_OR2(self, x, y):
-        tag = "2OR{}".format(self.gate_cnt)
+        tags = ("2OR{}".format(self.gate_cnt), "OR2")
         connectors = []
-        self.canvas.create_line(x - 44, y - 10, x - 14, y - 10, tags=(tag))
-        self.canvas.create_line(x - 44, y + 10, x - 14, y + 10, tags=(tag))
-        self.canvas.create_line(x + 28, y, x + 58, y, tags=(tag))
-        self.canvas.create_arc(x - 22, y - 15, x - 12, y + 15, start=-90, extent=180, style=ARC, tags=(tag))
-        self.canvas.create_arc(x - 87, y - 15, x + 53, y + 115, start=50, extent=40, style=ARC, tags=(tag))
-        self.canvas.create_arc(x - 87, y - 115, x + 53, y + 15, start=-90, extent=40, style=ARC, tags=(tag))
-        connectors.append(self.canvas.create_oval(x - 44 - CONN_RADIUS, y - 10 - CONN_RADIUS, x - 44 + CONN_RADIUS, y - 10 + CONN_RADIUS, tags=(tag), outline=""))
-        connectors.append(self.canvas.create_oval(x - 44 - CONN_RADIUS, y + 10 - CONN_RADIUS, x - 44 + CONN_RADIUS, y + 10 + CONN_RADIUS, tags=(tag), outline=""))
-        connectors.append(self.canvas.create_oval(x + 58 - CONN_RADIUS, y - CONN_RADIUS, x + 58 + CONN_RADIUS, y + CONN_RADIUS, tags=(tag), outline=""))
+        self.canvas.create_line(x - 44, y - 10, x - 14, y - 10, tags=tags)
+        self.canvas.create_line(x - 44, y + 10, x - 14, y + 10, tags=tags)
+        self.canvas.create_line(x + 28, y, x + 58, y, tags=tags)
+        self.canvas.create_arc(x - 22, y - 15, x - 12, y + 15, start=-90, extent=180, style=ARC, tags=tags)
+        self.canvas.create_arc(x - 87, y - 15, x + 53, y + 115, start=50, extent=40, style=ARC, tags=tags)
+        self.canvas.create_arc(x - 87, y - 115, x + 53, y + 15, start=-90, extent=40, style=ARC, tags=tags)
+        connectors.append(self.canvas.create_oval(x - 44 - CONN_RADIUS, y - 10 - CONN_RADIUS, x - 44 + CONN_RADIUS, y - 10 + CONN_RADIUS, tags=tags, outline=""))
+        connectors.append(self.canvas.create_oval(x - 44 - CONN_RADIUS, y + 10 - CONN_RADIUS, x - 44 + CONN_RADIUS, y + 10 + CONN_RADIUS, tags=tags, outline=""))
+        connectors.append(self.canvas.create_oval(x + 58 - CONN_RADIUS, y - CONN_RADIUS, x + 58 + CONN_RADIUS, y + CONN_RADIUS, tags=tags, outline=""))
         self.gate_cnt += 1
-        return tag, connectors
+        return tags[0], connectors
