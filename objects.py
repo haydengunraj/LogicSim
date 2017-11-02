@@ -23,7 +23,7 @@ class Handler(object):
         
         self.drawing = Drawing(self.canvas)
         self.menu = self.main.frame1
-        self.circuit = Circuit()
+        self.circuit = Circuit(self)
     
     def click_handler(self, event):
         x = self.canvas.canvasx(event.x)
@@ -73,13 +73,17 @@ class Handler(object):
                 x1, y1, x2, y2 = self.canvas.bbox(closest_item)
                 if isinstance(self.circuit.elements[closest_item], IN) or isinstance(self.circuit.elements[closest_item], OUT) and x > x1 and x < x2 and y > y1 and y < y2:
                     if self.mouse_mode == RENAME:
-                        print "good1"
-                        # rename element
+                        None # for renaming I/O
                     elif isinstance(self.circuit.elements[closest_item], IN):
                         uin = InputBox(self.main)
                         self.main.wait_window(uin.top)
                         self.circuit.elements[closest_item].inputs = []
                         self.circuit.elements[closest_item].addInput(int(uin.value))
+                        s = "{}:{}".format(closest_item, int(uin.value))
+                        self.canvas.itemconfig(self.canvas.find_withtag(closest_item)[-1], text=s)
+                        # display value
+                        
+                        
         else:
             if self.gate_mode is not None:
                 self.drawing.decrement(self.curs)
@@ -161,13 +165,8 @@ class Handler(object):
             if mode == DELETE:
                 self.toggle_CONNECT()
             if mode == SIMULATE:
-                for t in self.elements:
-                    if isinstance(self.elements[t], IN):
-                        if len(self.elements[t].inputs):
-                            self.toggle_CONNECT()
-                            self.circuit.simulate()
-                        else:
-                            None # instruct to set inputs
+                self.circuit.simulate()
+                self.toggle_CONNECT()
             if mode == CLEAR:
                 self.toggle_CONNECT()
     
@@ -181,7 +180,8 @@ class Handler(object):
             self.highlighted = 0
 
 class Circuit(object):
-    def __init__(self):
+    def __init__(self, master):
+        self.master = master
         self.elements = {}
         self.gate_classes = {
             "INPUT": IN,
@@ -194,14 +194,17 @@ class Circuit(object):
     def add(self, element, tag):
         self.elements[tag] = self.gate_classes[element]()
     
-    def remove(self, tag):
+    def remove(self, tag): ### fix to delete from wires
         for i in self.elements[tag].inputs:
             try:
                 i.next.remove(self.elements[tag])
             except:
                 pass
         for n in self.elements[tag].next:
-            i.inputs.remove(self.elements[tag])
+            try:
+                i.inputs.remove(self.elements[tag])
+            except:
+                pass
         del self.elements[tag]
         
     def connect(self, tag1, tag2, forward=True):
@@ -213,7 +216,8 @@ class Circuit(object):
     def simulate(self):
         for t in self.elements:
             if isinstance(self.elements[t], OUT):
-                print self.elements[t].output()
+                s = "{}:{}".format(t, self.elements[t].output())
+                self.master.canvas.itemconfig(self.master.canvas.find_withtag(t)[-1], text=s)
 
 class InputBox(object):
     def __init__(self, master):
@@ -247,11 +251,7 @@ class Drawing(object):
         return self.draw_fncts[element](x, y)
     
     def decrement(self, tag):
-        tags = ()
-        for e in self.canvas.find_withtag(tag):
-            tags = self.canvas.gettags(e)
-            if len(tags) > 1:
-                break
+        tags = self.canvas.gettags(self.canvas.find_withtag(tag)[0])
         if "IN" in tags:
             self.in_cnt -= 1
         elif "OUT" in tags:
@@ -260,33 +260,33 @@ class Drawing(object):
             self.gate_cnt -= 1
     
     def draw_IN(self, x, y):
-        tag = "IN{}".format(self.in_cnt)
+        tags = ("I{}".format(self.in_cnt), "IN")
         connectors = []
-        self.canvas.create_line(x + 5, y, x + 35, y, tags=(tag))
-        self.canvas.create_line(x - 10, y - 10, x + 5, y, tags=(tag))
-        self.canvas.create_line(x - 10, y + 10, x + 5, y, tags=(tag))
-        self.canvas.create_line(x - 40, y - 10, x - 10, y - 10, tags=(tag))
-        self.canvas.create_line(x - 40, y + 10, x - 10, y + 10, tags=(tag))
-        self.canvas.create_line(x - 40, y - 10, x - 40, y + 10, tags=(tag))
-        self.canvas.create_text(x - 35, y - 5, text=tag, font=("Arial", 10), anchor="nw", tags=(tag))
-        connectors.append(self.canvas.create_oval(x + 35 - CONN_RADIUS, y - CONN_RADIUS, x + 35 + CONN_RADIUS, y + CONN_RADIUS, tags=(tag, "IN"), outline=""))
+        self.canvas.create_line(x + 5, y, x + 35, y, tags=tags)
+        self.canvas.create_line(x - 10, y - 10, x + 5, y, tags=tags)
+        self.canvas.create_line(x - 10, y + 10, x + 5, y, tags=tags)
+        self.canvas.create_line(x - 40, y - 10, x - 10, y - 10, tags=tags)
+        self.canvas.create_line(x - 40, y + 10, x - 10, y + 10, tags=tags)
+        self.canvas.create_line(x - 40, y - 10, x - 40, y + 10, tags=tags)
+        connectors.append(self.canvas.create_oval(x + 35 - CONN_RADIUS, y - CONN_RADIUS, x + 35 + CONN_RADIUS, y + CONN_RADIUS, tags=tags, outline=""))
+        self.canvas.create_text(x - 37, y - 6, text=tags[0], font=("Times", 12), anchor="nw", tags=tags+("text",))
         self.in_cnt += 1
-        return tag, connectors
+        return tags[0], connectors
         
     
     def draw_OUT(self, x, y):
-        tag = "OUT{}".format(self.out_cnt)
+        tags = ("O{}".format(self.out_cnt), "OUT")
         connectors = []
-        self.canvas.create_line(x - 5, y, x - 35, y, tags=(tag))
-        self.canvas.create_line(x + 10, y - 10, x - 5, y, tags=(tag))
-        self.canvas.create_line(x + 10, y + 10, x - 5, y, tags=(tag))
-        self.canvas.create_line(x + 40, y - 10, x + 10, y - 10, tags=(tag))
-        self.canvas.create_line(x + 40, y + 10, x + 10, y + 10, tags=(tag))
-        self.canvas.create_line(x + 40, y - 10, x + 40, y + 10, tags=(tag))
-        self.canvas.create_text(x + 35, y - 5, text=tag, font=("Arial", 10), anchor="ne", tags=(tag))
-        connectors.append(self.canvas.create_oval(x - 35 - CONN_RADIUS, y - CONN_RADIUS, x - 35 + CONN_RADIUS, y + CONN_RADIUS, tags=(tag, "OUT"), outline=""))
+        self.canvas.create_line(x - 5, y, x - 35, y, tags=tags)
+        self.canvas.create_line(x + 10, y - 10, x - 5, y, tags=tags)
+        self.canvas.create_line(x + 10, y + 10, x - 5, y, tags=tags)
+        self.canvas.create_line(x + 40, y - 10, x + 10, y - 10, tags=tags)
+        self.canvas.create_line(x + 40, y + 10, x + 10, y + 10, tags=tags)
+        self.canvas.create_line(x + 40, y - 10, x + 40, y + 10, tags=tags)
+        connectors.append(self.canvas.create_oval(x - 35 - CONN_RADIUS, y - CONN_RADIUS, x - 35 + CONN_RADIUS, y + CONN_RADIUS, tags=tags, outline=""))
+        self.canvas.create_text(x + 37, y - 6, text=tags[0], font=("Times", 12), anchor="ne", tags=tags+("text",))
         self.out_cnt += 1
-        return tag, connectors
+        return tags[0], connectors
     
     def draw_NOT(self, x, y):
         tag = "NOT{}".format(self.gate_cnt)

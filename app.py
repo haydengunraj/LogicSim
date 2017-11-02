@@ -41,7 +41,7 @@ class MenuFrame(Frame):
             self.listbox.insert(i, GATES[i])
         self.listbox.config(yscrollcommand=scrollbar.set)
         scrollbar.config(command=self.listbox.yview)
-        self.listbox.grid(row=0, columnspan=2)
+        self.listbox.grid(row=0, columnspan=2, sticky="nsew")
         scrollbar.grid(row=0, column=2)
         self.listbox.update()
     
