@@ -8,7 +8,7 @@ class Handler(object):
     def __init__(self, main):
         self.main = main
         self.canvas = self.main.frame2.canvas
-        self.elements = []
+        self.aliases = {}
         self.connectors = []
         self.wires = {}
         self.gate_mode = None
@@ -38,6 +38,7 @@ class Handler(object):
                     self.circuit.remove(closest_item)
                     for w in self.wires[closest_item]:
                         self.canvas.delete(w)
+                    del self.aliases[closest_item]
         elif self.mouse_mode == CONNECT:
             if self.highlighted:
                 x1, y1, x2, y2 = self.canvas.coords(self.highlighted)
@@ -66,6 +67,10 @@ class Handler(object):
                     self.output_conn = (int(x2) == xb2)
                 self.canvas.itemconfig(self.highlighted, fill="")
                 self.highlighted = 0
+            elif self.dyn_id:
+                self.canvas.delete(self.dyn_id)
+                self.dyn_id = 0
+                self.dyn_tag = None
         elif self.mouse_mode == SET_VALS or self.mouse_mode == RENAME:
             closest_item = self.canvas.gettags(self.canvas.find_closest(x, y))
             if len(closest_item) > 0:
@@ -73,24 +78,32 @@ class Handler(object):
                 x1, y1, x2, y2 = self.canvas.bbox(closest_item)
                 if isinstance(self.circuit.elements[closest_item], IN) or isinstance(self.circuit.elements[closest_item], OUT) and x > x1 and x < x2 and y > y1 and y < y2:
                     if self.mouse_mode == RENAME:
-                        None # for renaming I/O
-                    elif isinstance(self.circuit.elements[closest_item], IN):
-                        uin = InputBox(self.main)
+                        uin = self.main.input_box(self.main, "Set Name", "Set")
                         self.main.wait_window(uin.top)
-                        self.circuit.elements[closest_item].inputs = []
-                        self.circuit.elements[closest_item].addInput(int(uin.value))
-                        s = "{}:{}".format(closest_item, int(uin.value))
-                        self.canvas.itemconfig(self.canvas.find_withtag(closest_item)[-1], text=s)
-                        # display value
-                        
-                        
+                        try:
+                            self.aliases[closest_item] = uin.value
+                            s = "{}".format(uin.value)
+                            self.canvas.itemconfig(self.canvas.find_withtag(closest_item)[-1], text=s)
+                        except AttributeError:
+                            pass
+                    elif isinstance(self.circuit.elements[closest_item], IN):
+                        uin = self.main.input_box(self.main, "Set Value", "Set")
+                        self.main.wait_window(uin.top)
+                        try:
+                            i = int(uin.value)
+                            self.circuit.elements[closest_item].inputs = []
+                            self.circuit.elements[closest_item].add_input(i)
+                            s = "{}:{}".format(self.aliases[closest_item], i)
+                            self.canvas.itemconfig(self.canvas.find_withtag(closest_item)[-1], text=s)
+                        except AttributeError:
+                            pass     
         else:
             if self.gate_mode is not None:
                 self.drawing.decrement(self.curs)
                 self.canvas.delete(self.curs)
                 tag, connectors = self.drawing.draw(self.gate_mode, x, y)
                 self.connectors.extend(connectors)
-                self.elements.append(tag)
+                self.aliases[tag] = tag
                 self.circuit.add(self.gate_mode, tag)
                 self.wires[tag] = []
                 self.menu.listbox.selection_clear(0, END)
@@ -135,7 +148,7 @@ class Handler(object):
         listbox = event.widget
         self.gate_mode = listbox.get(listbox.curselection()[0])
         self.mouse_mode = None
-        self.menu.active = [0, 0, 0, 0, 0]
+        self.menu.active = [0, 0, 0, 0, 0, 0]
         for btn in self.menu.mode_buttons:
             btn.config(highlightbackground="grey") 
         if self.curs is not None:
@@ -167,8 +180,9 @@ class Handler(object):
             if mode == SIMULATE:
                 self.circuit.simulate()
                 self.toggle_CONNECT()
-            if mode == CLEAR:
+            if mode == TRUTH:
                 self.toggle_CONNECT()
+                self.main.truth_table(self.main, self.circuit)
     
     def toggle_CONNECT(self):
         if self.dyn_id:
@@ -194,7 +208,7 @@ class Circuit(object):
     def add(self, element, tag):
         self.elements[tag] = self.gate_classes[element]()
     
-    def remove(self, tag): ### fix to delete from wires
+    def remove(self, tag):
         for i in self.elements[tag].inputs:
             try:
                 i.next.remove(self.elements[tag])
@@ -209,29 +223,60 @@ class Circuit(object):
         
     def connect(self, tag1, tag2, forward=True):
         if forward:
-            self.elements[tag2].addInput(self.elements[tag1])
+            self.elements[tag2].add_input(self.elements[tag1])
         else:
-            self.elements[tag1].addInput(self.elements[tag2])
+            self.elements[tag1].add_input(self.elements[tag2])
     
     def simulate(self):
+        output_vals = {}
         for t in self.elements:
             if isinstance(self.elements[t], OUT):
-                s = "{}:{}".format(t, self.elements[t].output())
+                output = self.elements[t].output()
+                s = "{}:{}".format(self.master.aliases[t], output)
                 self.master.canvas.itemconfig(self.master.canvas.find_withtag(t)[-1], text=s)
-
-class InputBox(object):
-    def __init__(self, master):
-        self.top = Toplevel(master)
-        self.label = Label(self.top, text="Set Value")
-        self.label.grid(row=0, column=0)
-        self.entry = Entry(self.top)
-        self.entry.grid(row=1, column=0)
-        self.set = Button(self.top, text="Set", command=self.execute)
-        self.set.grid(row=2, column=0, sticky="nsew")
+                output_vals[t] = output
+        return output_vals
     
-    def execute(self):
-        self.value = self.entry.get()
-        self.top.destroy()
+    def truth_table(self):
+        input_gates = []
+        output_gates = []
+        output_sets = []
+        for t in self.elements:
+            if isinstance(self.elements[t], IN):
+                input_gates.append(t)
+        input_gates.sort()
+        for i in range(2**len(input_gates)):
+            bi = [int(v) for v in list(format(i, "0{}b".format(len(input_gates))))]
+            for j in range(len(bi)):
+                self.elements[input_gates[j]].inputs = []
+                self.elements[input_gates[j]].add_input(bi[j])
+            res = self.simulate()
+            c = 0
+            s = []
+            for t in res:
+                if t not in output_gates:
+                    output_gates.append(t)
+                s.append(res[t])
+            output_sets.append(s)
+        return input_gates, output_gates, output_sets
+    
+    def truth_table2(self):
+        input_gates = []
+        output_sets = {}
+        for t in self.elements:
+            if isinstance(self.elements[t], IN):
+                input_gates.append(t)
+        for t in self.elements:
+            if isinstance(self.elements[t], OUT):
+                output_sets[t] = []
+        input_gates.sort()
+        for i in range(2**len(input_gates)):
+            bi = [int(v) for v in list(format(i, "0{}b".format(len(input_gates))))]
+            for j in range(len(bi)):
+                self.elements[input_gates[j]].inputs = []
+                self.elements[input_gates[j]].add_input(bi[j])
+            output_sets.append(self.simulate())
+        return input_gates, output_gates, output_sets
 
 class Drawing(object):
     def __init__(self, canvas):

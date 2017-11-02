@@ -4,10 +4,10 @@ class Gate(object):
         self.inputs = []
         self.next = []
     
-    def addInput(self, inputGate):
-        self.inputs.append(inputGate)
+    def add_input(self, input_gate):
+        self.inputs.append(input_gate)
         try:
-            inputGate.next.append(self)
+            input_gate.next.append(self)
         except:
             pass
 
