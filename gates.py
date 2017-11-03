@@ -1,4 +1,4 @@
-from constants import FAIL
+from constants import FAIL, BAD_INPUT_NUM, NOT_SET
 
 ### BASE CLASS ###
 class Gate(object):
@@ -18,23 +18,26 @@ class Gate(object):
 class IN(Gate):
     def output(self):
         if len(self.inputs) != 1:
-            return FAIL
+            return NOT_SET
         return self.inputs[0]
 
 class OUT(Gate):
     def output(self):
         if len(self.inputs) != 1:
+            return BAD_INPUT_NUM
+        o = self.inputs[0].output()
+        if o < 0:
             return FAIL
-        return self.inputs[0].output()
+        return o
 
 ### GATE CLASSES ###
 
 class NOT(Gate):
     def output(self):
         if len(self.inputs) != 1:
-            return FAIL
+            return BAD_INPUT_NUM
         o = self.inputs[0].output()
-        if o == FAIL:
+        if o < 0:
             return FAIL
         if o == 1:
             return 0
@@ -43,10 +46,10 @@ class NOT(Gate):
 class AND2(Gate):
     def output(self):
         if len(self.inputs) != 2:
-            return FAIL
+            return BAD_INPUT_NUM
         for i in self.inputs:
             o = i.output()
-            if o == FAIL:
+            if o < 0:
                 return FAIL
             if o == 0:
                 return 0
@@ -55,10 +58,10 @@ class AND2(Gate):
 class OR2(Gate):
     def output(self):
         if len(self.inputs) != 2:
-            return FAIL
+            return BAD_INPUT_NUM
         for i in self.inputs:
             o = i.output()
-            if o == FAIL:
+            if o < 0:
                 return FAIL
             if o == 1:
                 return 1

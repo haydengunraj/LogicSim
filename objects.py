@@ -54,15 +54,16 @@ class Handler(object):
                     else:
                         xd1, yd1, xd2, yd2 = self.canvas.coords(self.dyn_id)
                         tag = self.canvas.gettags(self.highlighted)[0]
-                        self.canvas.coords(self.dyn_id, xd1, yd1, (x1 + x2)/2, (y1 + y2)/2)
-                        if self.output_conn:
-                            self.circuit.connect(self.dyn_tag, tag)
-                        else:
-                            self.circuit.connect(self.dyn_tag, tag, forward=False)
-                        self.wires[self.dyn_tag].append(self.dyn_id)
-                        self.wires[tag].append(self.dyn_id)
-                        self.dyn_id = 0
-                        self.dyn_tag = None
+                        if self.circuit.elements[tag].output() == BAD_INPUT_NUM:
+                            self.canvas.coords(self.dyn_id, xd1, yd1, (x1 + x2)/2, (y1 + y2)/2)
+                            if self.output_conn:
+                                self.circuit.connect(self.dyn_tag, tag)
+                            else:
+                                self.circuit.connect(self.dyn_tag, tag, forward=False)
+                            self.wires[self.dyn_tag].append(self.dyn_id)
+                            self.wires[tag].append(self.dyn_id)
+                            self.dyn_id = 0
+                            self.dyn_tag = None
                 else:
                     tag = self.canvas.gettags(self.highlighted)[0]
                     self.dyn_tag = tag
@@ -243,7 +244,7 @@ class Circuit(object):
         for t in self.elements:
             if isinstance(self.elements[t], OUT):
                 output = self.elements[t].output()
-                if output == FAIL:
+                if (output == FAIL) or (output == BAD_INPUT_NUM):
                     return FAIL
                 output_vals[t] = output
         return output_vals
