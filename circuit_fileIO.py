@@ -37,6 +37,7 @@ class CircuitFileIO(object):
             outputs.append(self.circuit.elements.keys()[self.circuit.elements.values().index(e)])
         json1 = {
             "tag": tag,
+            "alias": self.master.aliases[tag]
             "type": gate_type,
             "location": {
                 "x": x,
