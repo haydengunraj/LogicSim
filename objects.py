@@ -75,32 +75,20 @@ class Handler(object):
                 self.canvas.delete(self.dyn_id)
                 self.dyn_id = 0
                 self.dyn_tag = None
-        elif self.mouse_mode == SET_VALS or self.mouse_mode == RENAME:
+        elif self.mouse_mode == RENAME:
             closest_item = self.canvas.gettags(self.canvas.find_closest(x, y))
             if len(closest_item) > 0:
                 closest_item = closest_item[0]
                 x1, y1, x2, y2 = self.canvas.bbox(closest_item)
                 if isinstance(self.circuit.elements[closest_item], IN) or isinstance(self.circuit.elements[closest_item], OUT) and x > x1 and x < x2 and y > y1 and y < y2:
-                    if self.mouse_mode == RENAME:
-                        uin = self.main.input_box(self.main, "Set Name", "Set")
-                        self.main.wait_window(uin.top)
-                        try:
-                            self.aliases[closest_item] = uin.value
-                            s = "{}".format(uin.value)
-                            self.canvas.itemconfig(self.canvas.find_withtag(closest_item)[-1], text=s)
-                        except AttributeError:
-                            pass
-                    elif isinstance(self.circuit.elements[closest_item], IN):
-                        uin = self.main.input_box(self.main, "Set Value", "Set")
-                        self.main.wait_window(uin.top)
-                        try:
-                            i = int(uin.value)
-                            self.circuit.elements[closest_item].inputs = []
-                            self.circuit.elements[closest_item].add_input(i)
-                            s = "{}:{}".format(self.aliases[closest_item], i)
-                            self.canvas.itemconfig(self.canvas.find_withtag(closest_item)[-1], text=s)
-                        except AttributeError:
-                            pass     
+                    uin = self.main.input_box(self.main, "Set Name", "Set")
+                    self.main.wait_window(uin.top)
+                    try:
+                        self.aliases[closest_item] = uin.value
+                        s = "{}".format(uin.value)
+                        self.canvas.itemconfig(self.canvas.find_withtag(closest_item)[-1], text=s)
+                    except AttributeError:
+                        pass
         else:
             if self.gate_mode is not None:
                 self.drawing.decrement(self.curs)
@@ -152,7 +140,7 @@ class Handler(object):
         listbox = event.widget
         self.gate_mode = listbox.get(listbox.curselection()[0])
         self.mouse_mode = None
-        self.menu.active = [0, 0, 0, 0, 0, 0, 0, 0]
+        self.menu.active = [0, 0, 0, 0, 0, 0, 0]
         for btn in self.menu.mode_buttons:
             btn.config(highlightbackground="grey") 
         if self.curs is not None:
@@ -181,13 +169,15 @@ class Handler(object):
                 self.curs = None
             if mode == DELETE:
                 self.toggle_CONNECT()
-            elif mode == SIMULATE:
-                self.circuit.simulate()
-                self.toggle_CONNECT()
+            elif mode == CLEAR:
+                None # clear the circuit
             elif mode == TRUTH:
                 self.toggle_CONNECT()
                 tab = self.main.truth_table(self.main, self.circuit)
-                self.main.wait_window(tab.top)
+                try:
+                    self.main.wait_window(tab.top)
+                except AttributeError:
+                    pass
                 self.menu.mode_buttons[TRUTH].config(highlightbackground="grey")
                 self.menu.active[TRUTH] = 0
             elif mode == SAVE:
@@ -198,11 +188,13 @@ class Handler(object):
                     self.save(filename)
                 except AttributeError:
                     pass
+                self.menu.mode_buttons[SAVE].config(highlightbackground="grey")
+                self.menu.active[SAVE] = 0
             elif mode == LOAD:
-                print self.wires
+                None # load circuit from JSON
+                # self.menu.mode_buttons[LOAD].config(highlightbackground="grey")
+                # self.menu.active[LOAD] = 0
                 
-                
-    
     def toggle_CONNECT(self):
         if self.dyn_id:
             self.canvas.delete(self.dyn_id)
@@ -246,14 +238,13 @@ class Circuit(object):
         else:
             self.elements[tag1].add_input(self.elements[tag2])
     
-    def simulate(self, t_table=False):
+    def simulate(self):
         output_vals = {}
         for t in self.elements:
             if isinstance(self.elements[t], OUT):
                 output = self.elements[t].output()
-                if not t_table:
-                    s = "{}:{}".format(self.master.aliases[t], output)
-                    self.master.canvas.itemconfig(self.master.canvas.find_withtag(t)[-1], text=s)
+                if output == FAIL:
+                    return FAIL
                 output_vals[t] = output
         return output_vals
     
@@ -265,12 +256,16 @@ class Circuit(object):
             if isinstance(self.elements[t], IN):
                 input_gates.append(t)
         input_gates.sort()
+        if not len(input_gates):
+            return FAIL
         for i in range(2**len(input_gates)):
             bi = [int(v) for v in list(format(i, "0{}b".format(len(input_gates))))]
             for j in range(len(bi)):
                 self.elements[input_gates[j]].inputs = []
                 self.elements[input_gates[j]].add_input(bi[j])
-            res = self.simulate(t_table=True)
+            res = self.simulate()
+            if res == FAIL or not len(res):
+                return FAIL
             c = 0
             s = []
             for t in res:

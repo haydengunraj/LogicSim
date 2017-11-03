@@ -14,19 +14,19 @@ class MainWindow(Tk):
         self.frame1.grid(row=0, column=0, sticky="ns")
         self.frame2.grid(row=0, column=1, sticky="ns")
         self.input_box = InputBox
+        self.alert = AlertBox
         self.truth_table = TruthTable
         self.bind_handlers()
     
     def bind_handlers(self):
         self.frame1.listbox.bind("<<ListboxSelect>>", self.handler.list_handler)
-        self.frame1.mode_buttons[0].config(command=lambda:self.handler.mode_handler(0))
-        self.frame1.mode_buttons[1].config(command=lambda:self.handler.mode_handler(1))
-        self.frame1.mode_buttons[2].config(command=lambda:self.handler.mode_handler(2))
-        self.frame1.mode_buttons[3].config(command=lambda:self.handler.mode_handler(3))
-        self.frame1.mode_buttons[4].config(command=lambda:self.handler.mode_handler(4))
-        self.frame1.mode_buttons[5].config(command=lambda:self.handler.mode_handler(5))
-        self.frame1.mode_buttons[6].config(command=lambda:self.handler.mode_handler(6))
-        self.frame1.mode_buttons[7].config(command=lambda:self.handler.mode_handler(7))
+        self.frame1.mode_buttons[DELETE].config(command=lambda:self.handler.mode_handler(DELETE))
+        self.frame1.mode_buttons[CONNECT].config(command=lambda:self.handler.mode_handler(CONNECT))
+        self.frame1.mode_buttons[CLEAR].config(command=lambda:self.handler.mode_handler(CLEAR))
+        self.frame1.mode_buttons[RENAME].config(command=lambda:self.handler.mode_handler(RENAME))
+        self.frame1.mode_buttons[TRUTH].config(command=lambda:self.handler.mode_handler(TRUTH))
+        self.frame1.mode_buttons[SAVE].config(command=lambda:self.handler.mode_handler(SAVE))
+        self.frame1.mode_buttons[LOAD].config(command=lambda:self.handler.mode_handler(LOAD))
         self.frame2.canvas.bind("<Button-1>", self.handler.click_handler)
         self.frame2.canvas.bind("<B1-Motion>", self.handler.drag_handler)
         self.frame2.canvas.bind("<Motion>", self.handler.move_handler)
@@ -36,6 +36,8 @@ class MenuFrame(Frame):
     def __init__(self, master, **kwargs):
         Frame.__init__(self, master, **kwargs)
         self.master = master
+        self.grid_columnconfigure(0, weight=1, uniform="fred")
+        self.grid_columnconfigure(1, weight=1, uniform="fred")
         self.listbox_setup()
         self.modebuttons_setup()
         
@@ -52,23 +54,21 @@ class MenuFrame(Frame):
     
     def modebuttons_setup(self):
         self.mode_buttons = []
-        self.active = [0, 0, 0, 0, 0, 0, 0, 0]
+        self.active = [0, 0, 0, 0, 0, 0, 0]
         self.mode_buttons.append(Button(self, text="Delete", highlightbackground="grey"))
         self.mode_buttons.append(Button(self, text="Connect", highlightbackground="grey"))
-        self.mode_buttons.append(Button(self, text="Set Values", highlightbackground="grey"))
+        self.mode_buttons.append(Button(self, text="Clear", highlightbackground="grey"))
         self.mode_buttons.append(Button(self, text="Rename I/O", highlightbackground="grey"))
-        self.mode_buttons.append(Button(self, text="Simulate", highlightbackground="grey"))
         self.mode_buttons.append(Button(self, text="Truth Table", highlightbackground="grey"))
         self.mode_buttons.append(Button(self, text="Save", highlightbackground="grey"))
         self.mode_buttons.append(Button(self, text="Load", highlightbackground="grey"))
         self.mode_buttons[DELETE].grid(row=1, column=0, sticky="nsew")
         self.mode_buttons[CONNECT].grid(row=1, column=1, sticky="nsew")
-        self.mode_buttons[SET_VALS].grid(row=2, column=0, sticky="nsew")
+        self.mode_buttons[CLEAR].grid(row=2, column=0, sticky="nsew")
         self.mode_buttons[RENAME].grid(row=2, column=1, sticky="nsew")
-        self.mode_buttons[SIMULATE].grid(row=3, columnspan=2, sticky="nsew")
-        self.mode_buttons[TRUTH].grid(row=4, columnspan=2, sticky="nsew")
-        self.mode_buttons[SAVE].grid(row=5, column=0, sticky="new")
-        self.mode_buttons[LOAD].grid(row=5, column=1, sticky="new")
+        self.mode_buttons[TRUTH].grid(row=3, columnspan=2, sticky="nsew")
+        self.mode_buttons[SAVE].grid(row=4, column=0, sticky="new")
+        self.mode_buttons[LOAD].grid(row=4, column=1, sticky="new")
 
 class CircuitFrame(Frame):
     def __init__(self, master, **kwargs):
@@ -90,11 +90,25 @@ class InputBox(object):
         self.value = self.entry.get()
         self.top.destroy()
 
+class AlertBox(object):
+    def __init__(self, master, title, message):
+        self.top = Toplevel(master)
+        self.top.title(title)
+        self.message = Label(self.top, text=message, wraplength=200)
+        self.btn = Button(self.top, text="OK", command=self.top.destroy)
+        self.message.grid(row=0, column=0)
+        self.btn.grid(row=1, column=0, sticky="nsew")
+
 class TruthTable(object):
     def __init__(self, master, circuit):
+        try:
+            input_gates, output_gates, output_sets = circuit.truth_table()
+        except TypeError:
+            alert = AlertBox(master, "Simulation Error", "Simulation failed. Circuit may be invalid or not fully connected")
+            master.wait_window(alert.top)
+            return
         self.top = Toplevel(master)
         self.top.title("Truth Table")
-        input_gates, output_gates, output_sets = circuit.truth_table()
         input_cnt = len(input_gates)
         output_cnt = len(output_gates)
         for g in range(input_cnt):
