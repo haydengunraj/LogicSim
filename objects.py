@@ -10,6 +10,7 @@ class Handler(object):
         self.canvas = self.main.frame2.canvas
         self.aliases = {}
         self.connectors = []
+        self.available_conn = []
         self.wires = {}
         self.gate_mode = None
         self.curs = None
@@ -17,6 +18,7 @@ class Handler(object):
         
         ### VARIABLES/FLAGS FOR DRAWING WIRES
         self.highlighted = 0
+        self.last_highlighted = 0
         self.dyn_id = 0
         self.dyn_tag = None
         self.output_conn = False
@@ -44,7 +46,7 @@ class Handler(object):
                         self.canvas.delete(w)
                     del self.aliases[closest_item]
         elif self.mouse_mode == CONNECT:
-            if self.highlighted:
+            if self.highlighted and not self.available_conn[self.connectors.index(self.highlighted)]:
                 x1, y1, x2, y2 = self.canvas.coords(self.highlighted)
                 if self.dyn_id:
                     if self.dyn_tag == self.canvas.gettags(self.highlighted)[0]:
@@ -54,16 +56,17 @@ class Handler(object):
                     else:
                         xd1, yd1, xd2, yd2 = self.canvas.coords(self.dyn_id)
                         tag = self.canvas.gettags(self.highlighted)[0]
-                        if self.circuit.elements[tag].output() == BAD_INPUT_NUM:
-                            self.canvas.coords(self.dyn_id, xd1, yd1, (x1 + x2)/2, (y1 + y2)/2)
-                            if self.output_conn:
-                                self.circuit.connect(self.dyn_tag, tag)
-                            else:
-                                self.circuit.connect(self.dyn_tag, tag, forward=False)
-                            self.wires[self.dyn_tag].append(self.dyn_id)
-                            self.wires[tag].append(self.dyn_id)
-                            self.dyn_id = 0
-                            self.dyn_tag = None
+                        self.canvas.coords(self.dyn_id, xd1, yd1, (x1 + x2)/2, (y1 + y2)/2)
+                        if self.output_conn:
+                            self.circuit.connect(self.dyn_tag, tag)
+                            self.available_conn[self.connectors.index(self.highlighted)] = 1
+                        else:
+                            self.circuit.connect(self.dyn_tag, tag, forward=False)
+                            self.available_conn[self.connectors.index(self.last_highlighted)] = 1
+                        self.wires[self.dyn_tag].append(self.dyn_id)
+                        self.wires[tag].append(self.dyn_id)
+                        self.dyn_id = 0
+                        self.dyn_tag = None
                 else:
                     tag = self.canvas.gettags(self.highlighted)[0]
                     self.dyn_tag = tag
@@ -71,8 +74,9 @@ class Handler(object):
                     xb1, yb1, xb2, yb2 = self.canvas.bbox(tag)
                     self.output_conn = (int(x2) == xb2)
                 self.canvas.itemconfig(self.highlighted, fill="")
+                self.last_highlighted = self.highlighted
                 self.highlighted = 0
-            elif self.dyn_id:
+            elif self.dyn_id and not self.highlighted:
                 self.canvas.delete(self.dyn_id)
                 self.dyn_id = 0
                 self.dyn_tag = None
@@ -96,6 +100,7 @@ class Handler(object):
                 self.canvas.delete(self.curs)
                 tag, connectors = self.drawing.draw(self.gate_mode, x, y)
                 self.connectors.extend(connectors)
+                self.available_conn.extend([0 for c in connectors])
                 self.aliases[tag] = tag
                 self.circuit.add(self.gate_mode, tag)
                 self.wires[tag] = []
@@ -244,7 +249,7 @@ class Circuit(object):
         for t in self.elements:
             if isinstance(self.elements[t], OUT):
                 output = self.elements[t].output()
-                if (output == FAIL) or (output == BAD_INPUT_NUM):
+                if output == FAIL:
                     return FAIL
                 output_vals[t] = output
         return output_vals
