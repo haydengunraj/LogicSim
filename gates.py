@@ -17,6 +17,8 @@ class Gate(object):
 
 class IN(Gate):
     def output(self):
+        if len(self.inputs) != 1:
+            return FAIL
         return self.inputs[0]
 
 class OUT(Gate):
@@ -31,7 +33,10 @@ class NOT(Gate):
     def output(self):
         if len(self.inputs) != 1:
             return FAIL
-        if self.inputs[0].output():
+        o = self.inputs[0].output()
+        if o == FAIL:
+            return FAIL
+        if o == 1:
             return 0
         return 1
 
@@ -40,7 +45,10 @@ class AND2(Gate):
         if len(self.inputs) != 2:
             return FAIL
         for i in self.inputs:
-            if i.output() != 1:
+            o = i.output()
+            if o == FAIL:
+                return FAIL
+            if o == 0:
                 return 0
         return 1
 
@@ -49,6 +57,9 @@ class OR2(Gate):
         if len(self.inputs) != 2:
             return FAIL
         for i in self.inputs:
-            if i.output() == 1:
+            o = i.output()
+            if o == FAIL:
+                return FAIL
+            if o == 1:
                 return 1
         return 0
