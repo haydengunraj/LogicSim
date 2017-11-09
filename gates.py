@@ -49,6 +49,7 @@ class OR2(Gate):
     def output(self):
         if len(self.inputs) != 2:
             return FAIL
-        if i.output() == 1:
-            return 1
+        for i in self.inputs:
+            if i.output() == 1:
+                return 1
         return 0
